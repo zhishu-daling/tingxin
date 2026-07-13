@@ -46,3 +46,13 @@ output/
 .env
 .env.local
 *.token
+
+# Internal files
+*.db
+pinyin_list.json
+calibration_data.json
+test_report.json
+五维协同.txt
+听心架构说明.txt
+更新报告_20260523.md
+通用听力智能计划书.txt
