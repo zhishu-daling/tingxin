@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+venv_py311/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Models (too large for git)
+cache/
+*.pt
+*.bin
+*.onnx
+
+# Audio samples (too large for git)
+temp/
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.flac
+
+# Output
+output/
+
+# Secrets
+.env
+.env.local
+*.token

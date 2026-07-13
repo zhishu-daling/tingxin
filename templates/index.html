@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>听心 · 听觉认知系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+  .header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .header h1 { font-size: 20px; font-weight: 600; color: #e6edf3; }
+  .header .sub { color: #8b949e; font-size: 13px; }
+  .header .badge { font-size: 10px; padding: 2px 6px; border-radius: 8px; background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb44; }
+  .main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  .drop-zone { border: 2px dashed #30363d; border-radius: 12px; padding: 48px 24px; text-align: center; cursor: pointer; transition: all .2s; background: #161b22; }
+  .drop-zone:hover, .drop-zone.dragover { border-color: #58a6ff; background: #1c2129; }
+  .drop-zone .icon { font-size: 48px; margin-bottom: 12px; }
+  .drop-zone p { color: #8b949e; font-size: 14px; }
+  .drop-zone .hint { font-size: 12px; color: #484f58; margin-top: 8px; }
+  input[type="file"] { display: none; }
+
+  .file-list { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .file-item { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; }
+  .file-item .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .file-item .info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .file-item .name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-item .size { font-size: 12px; color: #8b949e; }
+  .file-item .status { font-size: 12px; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .status-uploaded { color: #8b949e; background: #21262d; }
+  .status-processing { color: #d29922; background: #3d2e00; animation: pulse 1.5s infinite; }
+  .status-completed { color: #3fb950; background: #1b3320; }
+  .status-error { color: #f85149; background: #3d1214; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+
+  .progress-bar { margin-top: 8px; height: 3px; background: #21262d; border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #1f6feb; border-radius: 2px; transition: width .3s; }
+
+  .btn { padding: 4px 12px; border-radius: 6px; border: 1px solid #30363d; background: #21262d; color: #c9d1d9; font-size: 12px; cursor: pointer; transition: all .15s; }
+  .btn:hover { background: #30363d; border-color: #8b949e; }
+  .btn-primary { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+  .btn-primary:hover { background: #388bfd; }
+  .btn-danger { border-color: #f85149; color: #f85149; }
+  .btn-danger:hover { background: #3d1214; }
+
+  .result-panel { display: none; margin-top: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+  .result-panel.active { display: block; }
+  .result-header { padding: 16px; border-bottom: 1px solid #30363d; display: flex; align-items: center; justify-content: space-between; }
+  .result-header h2 { font-size: 16px; font-weight: 600; }
+  .result-meta { font-size: 12px; color: #8b949e; }
+  .result-body { padding: 0; }
+
+  .audio-player { padding: 12px 16px; background: #0d1117; border-bottom: 1px solid #30363d; }
+  .audio-player audio { width: 100%; height: 32px; }
+
+  .live-label { display: none; font-size: 11px; color: #d29922; background: #3d2e00; padding: 2px 8px; border-radius: 10px; margin-left: 8px; animation: pulse 1s infinite; }
+  .live-label.active { display: inline-block; }
+
+  .segments { max-height: 500px; overflow-y: auto; }
+  .segment { padding: 10px 16px; border-bottom: 1px solid #21262d; cursor: pointer; transition: background .1s; display: flex; gap: 10px; align-items: flex-start; }
+  .segment:hover { background: #1c2129; }
+  .segment:last-child { border-bottom: none; }
+  .segment.new { animation: fadeIn .5s; }
+  @keyframes fadeIn { from { opacity: 0; background: #1f6feb11; } to { opacity: 1; } }
+
+  .segment .time { font-size: 11px; color: #484f58; white-space: nowrap; min-width: 90px; font-family: 'SF Mono', monospace; padding-top: 2px; }
+  .segment .time:hover { color: #58a6ff; text-decoration: underline; }
+  .segment .speaker-badge { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 10px; white-space: nowrap; min-width: 50px; text-align: center; margin-top: 1px; }
+  .speaker-SPK1 { background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb44; }
+  .speaker-SPK2 { background: #3fb95022; color: #56d364; border: 1px solid #3fb95044; }
+  .speaker-SPK3 { background: #d2992222; color: #e3b341; border: 1px solid #d2992244; }
+  .speaker-SPK4 { background: #f8514922; color: #f85149; border: 1px solid #f8514944; }
+  .speaker-SPK5 { background: #bc8cff22; color: #d2a8ff; border: 1px solid #bc8cff44; }
+  .speaker-UNKNOWN { background: #484f5822; color: #8b949e; border: 1px solid #484f5844; }
+
+  .segment .text { flex: 1; font-size: 14px; line-height: 1.5; color: #e6edf3; }
+
+  .speaker-stats { padding: 12px 16px; border-bottom: 1px solid #30363d; display: flex; gap: 16px; flex-wrap: wrap; }
+  .speaker-stat { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .speaker-stat .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .speaker-stat .pct { color: #8b949e; font-size: 12px; }
+
+  .live-count { font-size: 11px; color: #8b949e; margin-top: 4px; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0d1117; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="emoji">🧠</span>
+  <h1>听心</h1>
+  <span class="sub">· 听觉认知系统</span>
+  <span class="badge">流式</span>
+</div>
+
+<div class="main">
+
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">🎵</div>
+    <p>拖拽音频文件到这里，或点击选择</p>
+    <p class="hint">支持 MP3 · WAV · M4A · FLAC · OGG</p>
+    <input type="file" id="fileInput" multiple accept="audio/*">
+  </div>
+
+  <div class="file-list" id="fileList"></div>
+
+  <div class="result-panel" id="resultPanel">
+    <div class="result-header">
+      <div>
+        <h2 id="resultTitle">结果</h2>
+        <div class="result-meta" id="resultMeta"></div>
+      </div>
+      <div>
+        <span class="live-label" id="liveLabel">🟢 实时</span>
+        <button class="btn" onclick="closeResult()">关闭</button>
+      </div>
+    </div>
+    <div id="resultContent"></div>
+  </div>
+
+</div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const FILE_STATES = {};
+let pollingIntervals = {};
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  for (const f of e.dataTransfer.files) if (f.type.startsWith('audio/')) uploadFile(f);
+});
+fileInput.addEventListener('change', () => {
+  for (const f of fileInput.files) uploadFile(f);
+  fileInput.value = '';
+});
+
+async function uploadFile(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+  const data = await resp.json();
+  if (data.error) { alert(data.error); return; }
+  FILE_STATES[data.task_id] = { filename: file.name, status: 'uploaded', segments: [], progress: 0 };
+  renderFileList();
+  startTranscribe(data.task_id);
+}
+
+async function startTranscribe(taskId) {
+  FILE_STATES[taskId].status = 'processing';
+  FILE_STATES[taskId].segments = [];
+  FILE_STATES[taskId].lastCount = 0;
+  renderFileList();
+  showResult(taskId);
+
+  await fetch(`/api/transcribe/${taskId}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ language: 'zh' }),
+  });
+
+  pollingIntervals[taskId] = setInterval(() => pollStatus(taskId), 2000);
+}
+
+async function pollStatus(taskId) {
+  const resp = await fetch(`/api/status/${taskId}`);
+  const data = await resp.json();
+  if (data.error) return;
+
+  const state = FILE_STATES[taskId];
+  if (!state) return;
+
+  state.status = data.status;
+  state.progress = data.progress || 0;
+
+  // 如果新片段来了，追加到状态
+  if (data.segments && data.segments.length > state.lastCount) {
+    state.segments = data.segments;
+    state.lastCount = data.segments.length;
+    renderFileList();
+    if (document.getElementById('resultPanel').classList.contains('active')) {
+      updateResultContent(taskId);
+    }
+  }
+
+  if (data.result) {
+    state.result = data.result;
+    state.status = 'completed';
+    state.progress = 1;
+    if (pollingIntervals[taskId]) {
+      clearInterval(pollingIntervals[taskId]);
+      delete pollingIntervals[taskId];
+    }
+    renderFileList();
+    updateResultContent(taskId);
+  } else if (data.status === 'error') {
+    if (pollingIntervals[taskId]) {
+      clearInterval(pollingIntervals[taskId]);
+      delete pollingIntervals[taskId];
+    }
+    renderFileList();
+  } else {
+    renderFileList();
+  }
+}
+
+function renderFileList() {
+  const list = document.getElementById('fileList');
+  const entries = Object.entries(FILE_STATES);
+  if (entries.length === 0) { list.innerHTML = ''; return; }
+
+  list.innerHTML = entries.map(([tid, s]) => {
+    const st = { uploaded: '待处理', processing: '处理中...', completed: '完成', error: '出错' }[s.status] || s.status;
+    const sc = 'status-' + s.status;
+    const pct = s.progress ? Math.round(s.progress * 100) : 0;
+    const segCount = s.segments ? s.segments.length : 0;
+    return `
+    <div class="file-item">
+      <div class="top">
+        <div class="info">
+          <span class="name">${escHtml(s.filename)}</span>
+          <span class="size">${segCount ? segCount+'句' : ''}</span>
+        </div>
+        <span class="status ${sc}">${st} ${pct > 0 ? pct+'%' : ''}</span>
+        <div class="actions">
+          ${s.status === 'completed' ? `<button class="btn btn-primary" onclick="showResult('${tid}')">查看</button>` : ''}
+          ${s.status === 'error' ? `<button class="btn btn-danger" onclick="removeFile('${tid}')">删除</button>` : ''}
+          ${s.status === 'processing' ? `<button class="btn" onclick="showResult('${tid}')">查看</button>` : ''}
+        </div>
+      </div>
+      ${s.status === 'processing' ? `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><div class="live-count">已识别 ${segCount} 句</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ========= Result Panel (with live updates) =========
+function showResult(taskId) {
+  const state = FILE_STATES[taskId];
+  if (!state) return;
+  document.getElementById('resultPanel').classList.add('active');
+  document.getElementById('resultTitle').textContent = state.filename;
+  document.getElementById('liveLabel').classList.toggle('active', state.status === 'processing');
+  updateResultContent(taskId);
+}
+
+function updateResultContent(taskId) {
+  const state = FILE_STATES[taskId];
+  if (!state) return;
+
+  const segs = state.segments || [];
+  const r = state.result;
+  const meta = document.getElementById('resultMeta');
+  const content = document.getElementById('resultContent');
+
+  // Meta line
+  let metaText = `${segs.length} 句`;
+  if (r) metaText = `时长 ${r.duration.toFixed(1)}s · ${r.num_speakers} 个说话人 · ${r.segments.length} 句`;
+  meta.textContent = metaText;
+
+  // Audio player
+  let audioHtml = '';
+  if (r || segs.length > 0) {
+    audioHtml = `<div class="audio-player"><audio id="audioPlayer" controls><source src="/api/audio/${taskId}" type="audio/mpeg"></audio></div>`;
+  }
+
+  // Speaker stats (only when completed with result)
+  let statsHtml = '';
+  if (r) {
+    const spkTime = {};
+    for (const seg of r.segments) {
+      const dur = seg.end - seg.start;
+      spkTime[seg.speaker] = (spkTime[seg.speaker] || 0) + dur;
+    }
+    statsHtml = Object.entries(spkTime).map(([sp, dur]) => {
+      const pct = ((dur / r.duration) * 100).toFixed(1);
+      return `<div class="speaker-stat"><span class="dot" style="background:var(--spk-${sp})"></span>${sp} <span class="pct">${pct}%</span></div>`;
+    }).join('');
+    if (statsHtml) statsHtml = `<div class="speaker-stats">${statsHtml}</div>`;
+  }
+
+  // Segments
+  const segHtml = segs.map((seg, i) => {
+    const spk = seg.speaker || 'UNKNOWN';
+    const ts = `${seg.start.toFixed(1)}s - ${seg.end.toFixed(1)}s`;
+    const isNew = i === segs.length - 1 && state.status === 'processing' ? ' new' : '';
+    return `<div class="segment${isNew}" onclick="playSegment(${seg.start})"><div class="time">${ts}</div><div class="speaker-badge speaker-${spk}">${spk}</div><div class="text">${escHtml(seg.text)}</div></div>`;
+  }).join('');
+
+  content.innerHTML = audioHtml + statsHtml + `<div class="segments">${segHtml}</div>`;
+
+  // Scroll to bottom for live updates
+  if (state.status === 'processing') {
+    const segDiv = content.querySelector('.segments');
+    if (segDiv) segDiv.scrollTop = segDiv.scrollHeight;
+  }
+}
+
+function playSegment(startTime) {
+  const audio = document.getElementById('audioPlayer');
+  if (audio) { audio.currentTime = startTime; audio.play(); }
+}
+
+function closeResult() {
+  document.getElementById('resultPanel').classList.remove('active');
+}
+
+function removeFile(taskId) {
+  if (pollingIntervals[taskId]) { clearInterval(pollingIntervals[taskId]); delete pollingIntervals[taskId]; }
+  delete FILE_STATES[taskId];
+  renderFileList();
+  closeResult();
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+// Inject speaker colors
+(function(){ const s = document.createElement('style'); s.textContent = ':root{--spk-SPK1:#58a6ff;--spk-SPK2:#56d364;--spk-SPK3:#e3b341;--spk-SPK4:#f85149;--spk-SPK5:#d2a8ff}'; document.head.appendChild(s); })();
+</script>
+
+</body>
+</html>
